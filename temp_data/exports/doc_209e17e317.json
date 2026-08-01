@@ -1,0 +1,41 @@
+{
+  "document_id": "doc_209e17e317",
+  "status": "completed",
+  "metadata": {
+    "document_id": "doc_209e17e317",
+    "original_filename": "doc_209e17e317.pdf",
+    "file_type": "PDF/IMAGE",
+    "file_size_bytes": 240207,
+    "total_pages": 1,
+    "processed_at": "2026-08-01 18:58:01"
+  },
+  "plain_text": [],
+  "headings": [],
+  "references": [],
+  "tables": [],
+  "equations": [],
+  "chemical_data": {
+    "compounds": [
+      {
+        "name": "benzene (SMILES: c1ccccc1)",
+        "formula": "C6H6",
+        "type": "Structure -> SMILES -> PubChem Verified",
+        "confidence": 0.98
+      }
+    ],
+    "structures": [
+      {
+        "diagram_id": "chem_struct_1_03322b",
+        "page": 1,
+        "bbox": {
+          "ymin": 0,
+          "xmin": 0,
+          "ymax": 1280,
+          "xmax": 1122
+        },
+        "estimated_bonds": 6
+      }
+    ]
+  },
+  "figures": []
+}

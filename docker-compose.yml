@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: eduextract-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_ENV=production
+      - UPLOAD_DIR=/tmp/eduextract/uploads
+      - EXPORT_DIR=/tmp/eduextract/exports
+    volumes:
+      - temp_storage:/tmp/eduextract
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/status"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: eduextract-frontend
+    ports:
+      - "8501:8501"
+    environment:
+      - BACKEND_API_URL=http://backend:8000
+    depends_on:
+      - backend
+
+volumes:
+  temp_storage:
