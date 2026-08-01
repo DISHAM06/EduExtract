@@ -1,9 +1,10 @@
 import os
 import requests
 from typing import Optional, Dict, Any, List
-
-BACKEND_URL = os.getenv("BACKEND_API_URL", "http://localhost:8000")
-
+BACKEND_URL = os.getenv(
+    "BACKEND_API_URL",
+    "https://eduextract.onrender.com"
+)
 def check_backend_health() -> Optional[Dict[str, Any]]:
     try:
         res = requests.get(f"{BACKEND_URL}/status", timeout=5)
