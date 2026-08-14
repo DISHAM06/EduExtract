@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from backend.config.settings import settings
-from backend.routers import health_router, upload_router, extract_router, download_router
+from backend.routers import health_router, upload_router, extract_router, download_router, chemistry_router
 from backend.utils.logger import logger
 
 app = FastAPI(
@@ -27,6 +27,7 @@ app.include_router(health_router)
 app.include_router(upload_router)
 app.include_router(extract_router)
 app.include_router(download_router)
+app.include_router(chemistry_router)
 
 # Custom Exception Handlers
 @app.exception_handler(Exception)

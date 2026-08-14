@@ -12,3 +12,5 @@ pillow>=10.0.1
 pandas>=2.1.1
 pytest>=7.4.3
 httpx>=0.25.0
+rdkit>=2024.03.1
+requests>=2.31.0

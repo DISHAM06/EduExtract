@@ -1,7 +1,5 @@
 import os
 import uuid
-import cv2
-import numpy as np
 from pathlib import Path
 from fastapi import APIRouter, UploadFile, File, HTTPException, status
 from typing import List
@@ -42,14 +40,20 @@ async def upload_document(files: List[UploadFile] = File(...)):
         pdf_bytes = await first_file.read()
         if len(pdf_bytes) > settings.MAX_UPLOAD_SIZE_BYTES:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File exceeds maximum allowed size.")
-
         pdf_path = save_uploaded_file(pdf_bytes, f"input{ext}", doc_dir)
         try:
             images = convert_pdf_to_images(pdf_path)
             total_pages = len(images)
+            try:
+                import cv2
+            except Exception:
+                raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="OpenCV not available on server")
+
             for page_num, img_np in images:
                 page_path = doc_dir / f"page_{page_num}.png"
                 cv2.imwrite(str(page_path), img_np)
+        except HTTPException:
+            raise
         except Exception as e:
             logger.error(f"Failed to process uploaded PDF: {e}")
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"PDF parsing error: {str(e)}")
@@ -67,6 +71,11 @@ async def upload_document(files: List[UploadFile] = File(...)):
             img_bytes = await file.read()
             if len(img_bytes) > settings.MAX_UPLOAD_SIZE_BYTES:
                 continue
+            try:
+                import numpy as np
+                import cv2
+            except Exception:
+                raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Required image libraries not available on server")
 
             nparr = np.frombuffer(img_bytes, np.uint8)
             img_np = cv2.imdecode(nparr, cv2.IMREAD_COLOR)

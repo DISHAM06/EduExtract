@@ -1,7 +1,5 @@
 import os
 import fitz  # PyMuPDF
-import cv2
-import numpy as np
 import json
 import csv
 import io
@@ -16,7 +14,7 @@ def save_uploaded_file(file_bytes: bytes, filename: str, target_dir: Path) -> Pa
         f.write(file_bytes)
     return file_path
 
-def convert_pdf_to_images(pdf_path: Path, dpi: int = 200) -> list[tuple[int, np.ndarray]]:
+def convert_pdf_to_images(pdf_path: Path, dpi: int = 200):
     """
     Renders PDF pages into OpenCV BGR numpy arrays using PyMuPDF.
     Returns list of (page_num, image_np).
@@ -31,6 +29,13 @@ def convert_pdf_to_images(pdf_path: Path, dpi: int = 200) -> list[tuple[int, np.
             pix = page.get_pixmap(matrix=mat)
             
             # Convert pixmap to numpy array
+            try:
+                import numpy as np
+                import cv2
+            except Exception as e:
+                logger.error("Missing dependencies for PDF image conversion: %s", e)
+                raise RuntimeError("PDF to image conversion requires NumPy and OpenCV to be installed") from e
+
             img_data = np.frombuffer(pix.samples, dtype=np.uint8)
             if pix.alpha:
                 img_np = img_data.reshape((pix.height, pix.width, 4))
@@ -38,7 +43,7 @@ def convert_pdf_to_images(pdf_path: Path, dpi: int = 200) -> list[tuple[int, np.
             else:
                 img_np = img_data.reshape((pix.height, pix.width, 3))
                 img_bgr = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
-                
+
             images.append((page_index + 1, img_bgr))
         doc.close()
     except Exception as e:
