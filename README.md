@@ -1,185 +1,643 @@
-# 🎓 EduExtract: Intelligent Academic & Scientific Document Processing Platform
+# EduExtract
 
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-009688.svg?style=flat&logo=FastAPI&logoColor=white)](https://fastapi.tiangolo.com)
-[![Streamlit](https://img.shields.io/badge/Streamlit-1.28+-FF4B4B.svg?style=flat&logo=Streamlit&logoColor=white)](https://streamlit.io)
-[![OpenCV](https://img.shields.io/badge/OpenCV-4.8+-5C3EE8.svg?style=flat&logo=OpenCV&logoColor=white)](https://opencv.org)
-[![EasyOCR](https://img.shields.io/badge/EasyOCR-1.7+-4B8BBE.svg?style=flat)](https://github.com/JaidedAI/EasyOCR)
-[![Docker](https://img.shields.io/badge/Docker-Enabled-2496ED.svg?style=flat&logo=Docker&logoColor=white)](https://www.docker.com)
-[![Python](https://img.shields.io/badge/Python-3.10+-3776AB.svg?style=flat&logo=Python&logoColor=white)](https://www.python.org)
+**EduExtract** is an AI-powered scientific chemistry extraction platform that converts chemical structures from scientific images into machine-readable molecular representations and enriches them with structured chemical information.
 
-**EduExtract** is a production-quality backend engineering system designed to parse, extract, and structure rich information from academic papers, scientific PDFs, and complex technical document images.
-
-It follows **Clean Architecture** principles and provides high-performance extraction of plain text, headings, tables, mathematical equations, chemical compound names/formulas, chemical structure diagrams, scientific figures/graphs, captions, and references.
+The platform combines **MolScribe, OpenCV, RDKit, OPSIN, PubChem, FastAPI, and Docker** into a modular chemistry-processing pipeline.
 
 ---
 
-## 🌟 Key Features
+## 🚀 Key Features
 
-- ✔ **Multi-Format Document Upload**: Process single/multi-page PDFs or batch image files (`.png`, `.jpg`, `.jpeg`, `.tiff`).
-- ✔ **Image Preprocessing**: Skew correction, Otsu & Adaptive thresholding, bilateral noise reduction, and aspect-ratio preserving resizing.
-- ✔ **OCR Engine**: Bounding box localization, text extraction, and confidence scoring via EasyOCR.
-- ✔ **Table Extraction**: Morphological line detection and cell grid reconstruction mapped to OCR bounding boxes.
-- ✔ **Math Equation Extraction**: Specialized math symbol density detection and automated LaTeX formatting (`$$...$$`).
-- ✔ **Chemical Entity Extraction**: IUPAC nomenclature, SMILES strings, molecular formulas ($H_2SO_4$, $NaCl$, Ethanol, Benzene), and ring contour detection.
-- ✔ **Scientific Figure & Graph Extraction**: Non-text region detection paired with nearby figure/table captions.
-- ✔ **Multi-Format Export**: One-click download as **JSON**, **Markdown (.md)**, or **CSV Archive (.zip)**.
-- ✔ **Production Backend**: Clean architecture, Pydantic validation, dependency injection, custom exception handling, structured logging, and containerized Docker setup.
+* 🧪 **Chemical Structure Recognition** — Extract chemical structures from images using MolScribe.
+* 🔤 **SMILES Generation** — Convert recognized chemical structures into standardized SMILES representations.
+* ✅ **SMILES Validation** — Validate and canonicalize molecular structures using RDKit.
+* 🔎 **Chemical Metadata Retrieval** — Retrieve compound information from PubChem.
+* 🧬 **Chemical Name Resolution** — Convert systematic chemical names into SMILES using OPSIN.
+* 🖼️ **Chemical Structure Rendering** — Convert supported SMILES representations into ChemFig/LaTeX and render them as PDF/image output.
+* ⚡ **FastAPI Backend** — Expose the chemistry pipeline through REST APIs.
+* 🐳 **Docker Support** — Package the application and its dependencies into a reproducible containerized environment.
 
 ---
 
-## 🏗️ Backend Clean Architecture
+# 🏗️ Architecture
 
+EduExtract contains two primary input pipelines that converge into a common molecular-processing layer.
+
+```text
+                    EduExtract
+                        │
+                     FastAPI
+                        │
+                Chemistry API
+                        │
+          ┌─────────────┴─────────────┐
+          │                           │
+   Chemical Structure             Chemical Name
+        Image                          │
+          │                            │
+      OpenCV                        OPSIN
+          │                            │
+      MolScribe                        │
+          │                            │
+          └─────────────┬─────────────┘
+                        │
+                      SMILES
+                        │
+                      RDKit
+                        │
+             Validation & Canonicalization
+                        │
+                   PubChem API
+                        │
+              Chemical Metadata
+                        │
+                        └───────┐
+                                │
+                              ChemFig
+                                │
+                              LaTeX
+                                │
+                           PDF / Image
 ```
-eduextract/
+
+---
+
+# 🔬 Pipeline 1 — Chemical Image → SMILES
+
+The primary extraction workflow is:
+
+```text
+Chemical Structure Image
+          ↓
+Image Preprocessing
+          ↓
+MolScribe
+          ↓
+Predicted SMILES
+          ↓
+RDKit Validation
+          ↓
+Canonical SMILES
+          ↓
+PubChem Metadata
+```
+
+### Step 1 — Image preprocessing
+
+OpenCV is used to load and preprocess the uploaded image before model inference.
+
+Typical preprocessing includes:
+
+* Image validation
+* Color conversion
+* Resizing when required
+* Preparing the image for model inference
+
+### Step 2 — MolScribe
+
+MolScribe is a chemical structure recognition model that predicts molecular representations from chemical structure images.
+
+Unlike conventional OCR, which primarily recognizes textual characters, MolScribe is designed specifically for chemical structure recognition.
+
+### Step 3 — RDKit validation
+
+The generated SMILES is not blindly trusted.
+
+RDKit attempts to parse the predicted SMILES into a valid molecular structure.
+
+```text
+MolScribe
+    ↓
+SMILES
+    ↓
+RDKit
+    ↓
+Valid / Invalid
+```
+
+If valid, the SMILES can be canonicalized into a standardized representation.
+
+### Step 4 — PubChem
+
+After validation and canonicalization, the SMILES can be used to retrieve structured chemical metadata from PubChem.
+
+Depending on availability, this may include:
+
+* PubChem CID
+* Compound name
+* IUPAC name
+* Molecular formula
+* Molecular weight
+* Canonical/isomeric SMILES
+
+---
+
+# 🔤 Pipeline 2 — Chemical Name → SMILES
+
+EduExtract also supports chemical-name-based molecular conversion.
+
+```text
+Chemical Name
+      ↓
+OPSIN API
+      ↓
+SMILES
+      ↓
+RDKit
+      ↓
+Canonical SMILES
+      ↓
+PubChem Metadata
+```
+
+OPSIN is used to parse systematic chemical names and generate machine-readable molecular representations.
+
+This complements the image-based MolScribe pipeline.
+
+---
+
+# 🧬 RDKit Processing Layer
+
+RDKit acts as the common chemistry-processing layer for both pipelines.
+
+```text
+MolScribe ──┐
+            ├──→ SMILES → RDKit → Canonical SMILES
+OPSIN ──────┘
+```
+
+RDKit is responsible for:
+
+* SMILES validation
+* SMILES canonicalization
+* Molecular structure parsing
+* Basic molecular property calculations where required
+
+Using RDKit before PubChem also prevents malformed model/API output from being sent directly to external services.
+
+---
+
+# 🔎 PubChem Integration
+
+PubChem is used as an external chemical information source.
+
+The workflow is:
+
+```text
+Canonical SMILES
+       ↓
+   PubChem API
+       ↓
+Compound Metadata
+```
+
+This avoids maintaining a manually hardcoded mapping of chemical names and properties.
+
+External API failures such as timeouts, unavailable compounds, or malformed responses are handled separately from the local RDKit validation layer.
+
+---
+
+# 🖼️ Chemical Structure Rendering
+
+The project also contains a rendering pipeline based on ChemFig and LaTeX.
+
+```text
+SMILES
+  ↓
+ChemFig
+  ↓
+LaTeX
+  ↓
+PDF
+  ↓
+PNG / Image
+```
+
+This functionality allows supported molecular structures to be converted from textual molecular representations into visual chemical structures.
+
+The rendering pipeline is kept separate from the MolScribe and OPSIN services so that it can be reused with SMILES generated by either pipeline.
+
+> **Note:** The ChemFig conversion currently supports the structures handled by the implemented conversion logic; it should not be considered a universal SMILES renderer.
+
+---
+
+# ⚙️ Backend Architecture
+
+The backend follows a service-oriented structure.
+
+```text
+FastAPI Routes
+      ↓
+Chemistry Services
+      ↓
+┌───────────────────────────────┐
+│ MolScribe                     │
+│ OPSIN                         │
+│ RDKit                         │
+│ PubChem                       │
+│ ChemFig / LaTeX Rendering     │
+└───────────────────────────────┘
+```
+
+The API layer is responsible for handling HTTP requests and responses, while the individual services contain the chemistry and integration logic.
+
+This separation makes individual components easier to test, replace, and maintain.
+
+---
+
+# 📁 Project Structure
+
+```text
+EduExtract/
+│
 ├── backend/
-│   ├── main.py                 # FastAPI Application & Global Middleware
 │   ├── config/
-│   │   └── settings.py         # Pydantic BaseSettings & Environment Config
 │   ├── models/
-│   │   └── schemas.py          # Request/Response Pydantic Models & DTOs
 │   ├── routers/
-│   │   ├── health.py           # GET /status (Health checks)
-│   │   ├── upload.py           # POST /upload (File uploads & PDF rendering)
-│   │   ├── extract.py          # POST /extract (Pipeline Orchestrator)
-│   │   └── download.py         # GET /download (JSON, Markdown, CSV exports)
 │   ├── services/
-│   │   ├── preprocessing.py    # Noise removal, thresholding, skew correction
-│   │   ├── ocr_service.py      # EasyOCR singleton wrapper
-│   │   ├── text_extractor.py   # Headings hierarchy & reference parsing
-│   │   ├── table_extractor.py  # OpenCV line detection & cell matrix building
-│   │   ├── equation_extractor.py# Math formula parsing & LaTeX conversion
-│   │   ├── chemical_extractor.py# IUPAC regex & molecular structure contours
-│   │   └── graph_extractor.py  # Figures, charts & caption pairing
-│   └── utils/
-│       ├── image_utils.py      # OpenCV conversions & cropping helpers
-│       ├── file_utils.py       # PDF rendering, temporary storage & exporters
-│       └── logger.py           # Structured Python logger
+│   │   └── chemistry/
+│   │       ├── molscribe_service.py
+│   │       ├── opsin_service.py
+│   │       ├── rdkit_service.py
+│   │       ├── pubchem_service.py
+│   │       └── rendering_service.py
+│   ├── utils/
+│   └── main.py
+│
 ├── frontend/
-│   ├── app.py                  # Streamlit Multi-Tab Dashboard
-│   └── utils.py                # REST API Client
-├── tests/                      # Pytest Unit Test Suite
-├── docker-compose.yml          # Container Orchestration
-├── Dockerfile.backend          # FastAPI Docker Image
-├── Dockerfile.frontend         # Streamlit Docker Image
-├── requirements.txt            # Dependencies
-└── ARCHITECTURE.md             # In-depth System Architecture Document
+│
+├── tests/
+│
+├── Dockerfile.backend
+├── docker-compose.yml
+├── requirements.txt
+├── ARCHITECTURE.md
+├── .dockerignore
+├── .gitignore
+└── README.md
+```
+
+The exact internal structure may vary slightly depending on the deployed version of the project.
+
+---
+
+# 🔌 API Endpoints
+
+The chemistry backend exposes versioned REST endpoints.
+
+## Extract Chemical Structure
+
+```http
+POST /api/v1/chemistry/extract
+```
+
+### Input
+
+A chemical structure image.
+
+### Processing
+
+```text
+Image
+ ↓
+MolScribe
+ ↓
+SMILES
+ ↓
+RDKit
+ ↓
+PubChem
+```
+
+### Response
+
+A structured response containing available information such as:
+
+```json
+{
+  "extracted_smiles": "c1ccccc1",
+  "canonical_smiles": "c1ccccc1",
+  "valid": true,
+  "compound": {
+    "name": "benzene",
+    "formula": "C6H6",
+    "molecular_weight": 78.11,
+    "cid": 241
+  }
+}
 ```
 
 ---
 
-## ⚡ Quick Start with Docker (Recommended)
+## Resolve Chemical Name
 
-Run the entire system with a single command:
+```http
+POST /api/v1/chemistry/resolve-name
+```
+
+### Example Input
+
+```json
+{
+  "name": "benzene"
+}
+```
+
+### Processing
+
+```text
+Chemical Name
+ ↓
+OPSIN
+ ↓
+SMILES
+ ↓
+RDKit
+ ↓
+PubChem
+```
+
+---
+
+## Render Chemical Structure
+
+```http
+POST /api/v1/chemistry/render
+```
+
+### Example Input
+
+```json
+{
+  "smiles": "c1ccccc1"
+}
+```
+
+### Processing
+
+```text
+SMILES
+ ↓
+RDKit Validation
+ ↓
+ChemFig
+ ↓
+LaTeX
+ ↓
+PDF / Image
+```
+
+---
+
+# 🛠️ Tech Stack
+
+| Technology          | Purpose                               |
+| ------------------- | ------------------------------------- |
+| **Python**          | Core backend and chemistry pipeline   |
+| **FastAPI**         | REST API backend                      |
+| **OpenCV**          | Image preprocessing                   |
+| **MolScribe**       | Chemical structure recognition        |
+| **PyTorch**         | ML model inference                    |
+| **RDKit**           | SMILES validation and cheminformatics |
+| **OPSIN**           | Chemical name → SMILES conversion     |
+| **PubChem API**     | Chemical metadata retrieval           |
+| **ChemFig / LaTeX** | Chemical structure rendering          |
+| **Docker**          | Containerization and deployment       |
+| **Uvicorn**         | ASGI server for FastAPI               |
+
+---
+
+# 🐳 Docker
+
+EduExtract is containerized to provide a reproducible runtime environment for the backend and its scientific dependencies.
+
+The project contains:
+
+```text
+Dockerfile.backend
+docker-compose.yml
+.dockerignore
+```
+
+## Build the Backend
 
 ```bash
-docker compose up --build
+docker build -f Dockerfile.backend -t eduextract-backend .
 ```
 
-- **Streamlit Frontend Dashboard**: [http://localhost:8501](http://localhost:8501)
-- **FastAPI Interactive API Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
-- **Health Check Status**: [http://localhost:8000/status](http://localhost:8000/status)
+## Run the Container
+
+```bash
+docker run -p 8000:8000 eduextract-backend
+```
+
+The API will then be available at:
+
+```text
+http://localhost:8000
+```
+
+FastAPI's interactive API documentation can be accessed through:
+
+```text
+http://localhost:8000/docs
+```
 
 ---
 
-## 🛠️ Local Installation Guide (Without Docker)
+## Docker Architecture
 
-### 1. Prerequisites
-- Python 3.10 or higher installed.
+```text
+Dockerfile
+     ↓
+docker build
+     ↓
+Docker Image
+     ↓
+docker run
+     ↓
+Container
+     ↓
+Uvicorn
+     ↓
+FastAPI
+     ↓
+EduExtract Chemistry Pipeline
+```
 
-### 2. Setup Virtual Environment
+Docker packages the application together with its required Python and system-level dependencies, reducing environment-specific setup problems.
+
+---
+
+# 🧪 Local Development
+
+## 1. Clone the repository
+
+```bash
+git clone <repository-url>
+cd EduExtract
+```
+
+## 2. Create a virtual environment
+
+### Windows
+
 ```bash
 python -m venv venv
-# On Windows:
 venv\Scripts\activate
-# On Linux/macOS:
+```
+
+### Linux/macOS
+
+```bash
+python3 -m venv venv
 source venv/bin/activate
 ```
 
-### 3. Install Dependencies
+## 3. Install dependencies
+
 ```bash
 pip install -r requirements.txt
 ```
 
-### 4. Run Backend Server
+## 4. Start the backend
+
 ```bash
-uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
+uvicorn backend.main:app --reload
 ```
 
-### 5. Run Frontend Dashboard
-In a separate terminal window:
-```bash
-streamlit run frontend/app.py
+The API will be available at:
+
+```text
+http://localhost:8000
 ```
 
----
+Interactive documentation:
 
-## 📡 REST API Documentation
-
-### 1. System Health Check
-`GET /status`
-- **Response**:
-  ```json
-  {
-    "status": "healthy",
-    "app_name": "EduExtract",
-    "version": "1.0.0",
-    "ocr_engine": "EasyOCR",
-    "opencv_available": true
-  }
-  ```
-
-### 2. Document Upload
-`POST /upload`
-- **Form Data**: `files` (Multipart PDF or image file list)
-- **Response**:
-  ```json
-  {
-    "document_id": "doc_a1b2c3d4e5",
-    "filename": "sample_paper.pdf",
-    "file_type": "PDF",
-    "total_pages": 3,
-    "message": "Upload processed successfully. Ready for extraction."
-  }
-  ```
-
-### 3. Run Complete Extraction Pipeline
-`POST /extract`
-- **Body**:
-  ```json
-  {
-    "document_id": "doc_a1b2c3d4e5",
-    "enable_preprocessing": true,
-    "extract_text": true,
-    "extract_tables": true,
-    "extract_equations": true,
-    "extract_chemical": true,
-    "extract_graphs": true
-  }
-  ```
-- **Response**: `ExtractionResult` containing metadata, plain text, headings, tables, equations, chemical compounds/structures, figures, and references.
-
-### 4. Download Results
-`GET /download/{document_id}?format={json|markdown|csv}`
-- **Formats**:
-  - `json`: Structured JSON representation
-  - `markdown`: Formatted Markdown document (`.md`)
-  - `csv`: Zip archive containing extracted tables as `.csv` files
-
----
-
-## 🧪 Running Unit Tests
-
-Execute the unit test suite with `pytest`:
-
-```bash
-pytest tests/ -v
+```text
+http://localhost:8000/docs
 ```
 
 ---
 
-## 🚀 Future Improvements
+# 🧪 Testing
 
-1. **GPU Acceleration**: Enable CUDA acceleration for EasyOCR on GPU-enabled instances.
-2. **Deep Learning Table Recognition**: Integrate Table Transformer (TATR) for complex nested tables.
-3. **Advanced SMILES Extraction**: Integrate MolScribe / ChemDraw ML model for optical chemical structure recognition (OCSR).
-4. **Vector Database Integration**: Add Qdrant/Pinecone embeddings for RAG over scientific papers.
+Run the test suite using:
+
+```bash
+pytest
+```
+
+Tests cover the major components of the chemistry pipeline, including:
+
+* Image processing
+* MolScribe integration
+* SMILES validation
+* RDKit processing
+* OPSIN integration
+* PubChem response handling
+* Rendering
+* API endpoints
+
+External APIs should be mocked in unit tests where appropriate so that the core test suite does not depend entirely on network availability.
+
+---
+
+# ⚠️ Error Handling
+
+The pipeline handles failures at individual stages rather than allowing one failure to silently corrupt the complete workflow.
+
+Examples include:
+
+* Invalid image
+* Unsupported image format
+* MolScribe inference failure
+* Invalid SMILES
+* OPSIN API failure
+* PubChem timeout
+* Compound not found
+* Rendering failure
+
+For example:
+
+```text
+Image
+ ↓
+MolScribe
+ ↓
+Invalid SMILES
+ ↓
+RDKit rejects structure
+ ↓
+Pipeline stops with validation error
+```
+
+This prevents invalid molecular representations from being passed to downstream services.
+
+---
+
+# 🔐 Configuration
+
+Environment-specific configuration should be provided through environment variables rather than hardcoded values.
+
+Sensitive configuration such as credentials or secrets should never be committed to the repository.
+
+Example:
+
+```text
+.env
+```
+
+should remain local and be excluded through `.gitignore`.
+
+---
+
+# 📌 Design Decisions
+
+### Why MolScribe?
+
+Because conventional OCR is designed primarily for text recognition, while MolScribe is specifically designed to recognize chemical structures and generate molecular representations.
+
+### Why RDKit?
+
+To provide deterministic local validation and canonicalization of model/API-generated SMILES before downstream processing.
+
+### Why OPSIN?
+
+To support chemical-name-based molecular conversion in addition to image-based extraction.
+
+### Why PubChem?
+
+To retrieve structured chemical metadata without maintaining a large custom chemical database.
+
+### Why FastAPI?
+
+It provides a lightweight Python API framework with request validation, automatic OpenAPI documentation, and easy integration with Python ML/scientific libraries.
+
+### Why Docker?
+
+The application combines several environment-sensitive scientific and ML dependencies. Docker provides a reproducible runtime environment and simplifies deployment.
+
+---
+
+# 🔮 Future Improvements
+
+Potential improvements include:
+
+* More robust chemical structure rendering
+* Improved handling of complex stereochemistry
+* Better image preprocessing for noisy scientific figures
+* Batch chemical structure extraction
+* Confidence scoring for model predictions
+* Persistent storage for extracted compounds
+* Caching external PubChem requests
+* Additional chemical databases
+* Improved frontend visualization
+
+---
+
+# 📄 License
+
+This project is developed for educational, research, and portfolio purposes.
+
+Add the appropriate license here if the repository is released under a specific open-source license.
